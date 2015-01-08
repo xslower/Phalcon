@@ -44,14 +44,15 @@ abstract class DataBase extends Strategy{
 
     /**
      * @var array   格式array('fields1', 'fields2')
-     * todo 准备用fields替代
+     * todo 可以用columns_info替代
      */
     protected $_primary_key = [];
+
     /**
      * @var array
      * 表字段信息，字段的类型、主键、默认值等
      */
-    protected $_columns = [];
+    protected $_columns_info = [];
 
     /**
      * @var \GreenTea\Model\DataBase\Transaction
@@ -65,10 +66,11 @@ abstract class DataBase extends Strategy{
      * 构造函数
      */
     public function __construct(){
-        if(!$this->_table_name){
-            throw new \Exception('Table Name[_table_name] must be set!');
+        if(!$this->getTableName()){
+            throw new \Exception('Subclass Must set [$_table_name] or implement the Method [getTableName()]!');
         }
         parent::__construct(Services::CONFIG_DB);
+        $this->_initTableColumns();
         $this->_logger = DI::getDefault()->getShared(Services::SERVICE_LOGGER);
     }
 
@@ -79,7 +81,8 @@ abstract class DataBase extends Strategy{
      */
     protected function _exception($result, $error_message){
         if($result === false){
-            $this->_logger->error('[SQL Error]:' . $error_message);
+            $this->_logger->error('[SQL Error]: ' . $error_message);
+            $this->_logger->error('[SQL]: ' . $this->getLastSqlStatement());
             throw new \Exception($error_message);
         }
     }
@@ -110,12 +113,13 @@ abstract class DataBase extends Strategy{
      * @comment condition过滤主要是用于一个condition查找多个表的情况。
      */
     protected function _filterFields(Array &$fields_or_condition){
+        $columns = $this->_getColumnsInfo();
         foreach ($fields_or_condition as $key => &$value) { //同时把值为NULL的过滤掉
             if($key === Factory::_OR_ || $key === Factory::_AND_){ //如果是or、and关系符号则进入下一层
                 $this->_filterFields($value);
                 continue;
             }
-            if(!isset($this->_getTableColumns()[$key]) || $value === NULL){
+            if(!isset($columns[$key]) || $value === NULL){
                 unset($fields_or_condition[$key]);
                 $this->_logger->notice('There is no such field in this table['.$key.']');
             }
@@ -127,11 +131,7 @@ abstract class DataBase extends Strategy{
      * @return array
      */
     protected function _getPkFields(){
-        $pk = [];
-        foreach ($this->_getTableColumns() as $k => $desc) {
-            if($desc[self::COLUMNS_KEY] == self::PRIMARY_KEY) $pk[] = $k;
-        }
-        return $pk;
+        return $this->_primary_key;
     }
 
     /**
@@ -143,7 +143,7 @@ abstract class DataBase extends Strategy{
         $pkf = $this->_getPkFields();
         $pkv = '';
         foreach ($pkf as $key) {
-            if(isset($condition[$key])) {
+            if(isset($condition[$key]) && !is_array($condition[$key])) { //array是BETWEEN、IN等情况
                 $pkv .= $condition[$key];
             }else return false;
         }
@@ -154,9 +154,16 @@ abstract class DataBase extends Strategy{
      * 获取表结构信息
      * @return array
      */
-    protected function _getTableColumns(){
-        $this->_initTableColumns();
-        return $this->_columns;
+    protected function _getColumnsInfo(){
+        return $this->_columns_info;
+    }
+
+    /**
+     * 获取表的所有字段
+     * @return array
+     */
+    protected function _getTableFields(){
+        return array_keys($this->_columns_info);
     }
 
     /**
@@ -165,11 +172,9 @@ abstract class DataBase extends Strategy{
      * @param string $table
      * @return array
      */
-    protected function _initTableColumns($table = ''){
-        if(!$this->_columns || !is_array($this->_columns) || current($this->_columns) == '*'){
-            if(!$table){
-                $table = $this->getTableName(); //是否分表都会返回一个有效表名
-            }
+    protected function _initTableColumns(){
+        if(!$this->_columns_info || !is_array($this->_columns_info) || current($this->_columns_info) == '*'){
+            $table = $this->getTableName(); //是否分表都会返回一个有效表名
             $fields = [];
             $sql = 'SHOW COLUMNS FROM `' . $table . '`';
             $driver = $this->_getDriver(
@@ -177,11 +182,15 @@ abstract class DataBase extends Strategy{
 
             $columns = $driver->query($sql);
             $this->_exception($columns, "No such TABLE[$table] in the the Database!");
-
+            $pk = [];
             foreach ($columns as $v) {
-                $fields[$v[self::COLUMNS_FIELD]] = $v;
+                $fd = $v[self::COLUMNS_FIELD];
+                if($v[self::COLUMNS_KEY] == self::PRIMARY_KEY) $pk[] = $fd;
+                unset($v[self::COLUMNS_FIELD], $v[self::COLUMNS_NULL], $v[self::COLUMNS_KEY]);
+                $fields[$fd] = $v;
             }
-            $this->_columns = $fields;
+            $this->_primary_key = $pk;
+            $this->_columns_info = $fields;
         }
     }
 
@@ -225,14 +234,14 @@ abstract class DataBase extends Strategy{
 
     protected function _query($curd, $table, Array $fields = [], Array $condition = [],
                               Array $append = [], $error_message = ''){
-        $this->_initTableColumns($table);
+        //$this->_initTableColumns($table);
         $op_type = Distribute::OP_WRITE;
         $func = 'execute';
         if($curd === Factory::SELECT) {
             $op_type = Distribute::OP_READ;
             $func = 'query';
             if(empty($fields)) { //如果fields为空则使用子类设置的fields或表的meta_fields
-                $fields = $this->_getTableColumns();
+                $fields = $this->_getTableFields();
             }
         }else{
             $this->_filterFields($fields);

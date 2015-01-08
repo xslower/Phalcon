@@ -12,12 +12,13 @@ class Condition{
 
     /**
      * 正常有两种用法，IN和BETWEEN有第三种简化用法。
-     * 格式：condition=array(
-     *  'field1'  => array( '>' => 123 );
+     * 格式：condition = [
+     *  'field1'  => [ '>' => 123 ];
      *
-     *  'field2'  => array( 'BETWEEN' => array(1,9) );
+     *  'field2'  => [ 'BETWEEN' => [1,9] ];
      *
-     *  'field3'  => array( 'IN' => array(1,2,3) );
+     *  'field3'  => [ 'IN' => [1,2,3] ];
+     * ]
      * @param array $conds
      * @param string $relation
      * @return null|string

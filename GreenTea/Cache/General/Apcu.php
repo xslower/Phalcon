@@ -81,6 +81,6 @@ class Apcu extends General{
     }
 
     protected function getOriginKey($key){
-        return ltrim($key, $this->_db_name . $this->_table_name);
+        return \GreenTea\Utility\String::strip($key, $this->_db_name . $this->_table_name);
     }
 } 

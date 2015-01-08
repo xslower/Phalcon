@@ -27,4 +27,16 @@ class String {
         });
         return implode('', $words);
     }
+
+    /**
+     * 去掉字符串左右的一些部分。
+     * 这里不对左右字符的相等进行验证，只根据给定字符的长度进行去除
+     * @param $origin
+     * @param string $left
+     * @param string $right
+     * @return string
+     */
+    public static function strip($origin, $left = '', $right = ''){
+        return substr($origin, strlen($left), -strlen($right));
+    }
 } 

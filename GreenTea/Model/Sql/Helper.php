@@ -10,6 +10,8 @@ namespace GreenTea\Model\Sql;
 
 class Helper {
 
+    protected static $_valid_operator = ['=', '>', '>=', '<', '<='];
+
     /**
      * 根据条件对值进行转化
      * @param $value
@@ -42,6 +44,9 @@ class Helper {
     }
 
     public static function kvPair($key, $value, $op){
+        if(!in_array($op, self::$_valid_operator)){
+            throw new \Exception('Invalid Opertator [' . $op . ']');
+        }
         $val = Helper::purifyValue($value);
         $state = " `$key` $op $val ";
         return $state;

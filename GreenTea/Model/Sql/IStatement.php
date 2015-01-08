@@ -10,5 +10,5 @@ namespace GreenTea\Model\Sql;
 
 abstract class IStatement {
 
-    abstract public function assemble($table, $fields = null, $condition = null, $append = null);
+    abstract public function assemble($table, Array $fields = [], Array $condition = [], Array $append = []);
 }

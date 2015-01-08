@@ -23,6 +23,7 @@ use GreenTea\DI\Web as DI;
 use GreenTea\Model\DataBase\Strategy;
 use GreenTea\Utility\XArray;
 use GreenTea\Vector;
+use PhalconEx\Mvc\Dispatcher;
 
 class NoSql extends Strategy{
 
@@ -52,16 +53,18 @@ class NoSql extends Strategy{
     }
 
     public function set($key, $value, $lifetime = null){
-        $factors = $this->_assembleFactor(Distribute::OP_WRITE);
-        $driver = $this->_getDriver($factors);
+        $driver = $this->_getDriverByOpType(Distribute::OP_WRITE);
         return $driver->set($key, $value, $lifetime);
     }
 
     public function get($key){
-        $factors = $this->_assembleFactor(Distribute::OP_READ);
-        $driver = $this->_getDriver($factors);
-        $ret = $driver->get($key);
-        return $ret;
+        $driver = $this->_getDriverByOpType(Distribute::OP_READ);
+        return $driver->get($key);
+    }
+
+    public function del($key){
+        $driver = $this->_getDriverByOpType(Distribute::OP_WRITE);
+        return $driver->delete($key);
     }
 
     /**
@@ -69,30 +72,32 @@ class NoSql extends Strategy{
      * @param null $lifetime
      */
     public function multiSet(Array $items, $lifetime = null){
-        $factors = $this->_assembleFactor(Distribute::OP_WRITE);
-        $driver = $this->_getDriver($factors);
-        $driver->multiSet($items, $lifetime);
+        $driver = $this->_getDriverByOpType(Distribute::OP_WRITE);
+        return $driver->multiSet($items, $lifetime);
     }
 
     public function multiGet(Array $keys){
-        $factors = $this->_assembleFactor(Distribute::OP_READ);
-        $driver = $this->_getDriver($factors);
-        $result = $driver->multiGet($keys);
-        return $result;
+        $driver = $this->_getDriverByOpType(Distribute::OP_READ);
+        return $driver->multiGet($keys);
+    }
+
+    public function multiDel(Array $keys){
+        $driver = $this->_getDriverByOpType(Distribute::OP_WRITE);
+        return $driver->multiDel($keys);
     }
 
     public function flush($scope = self::SCOPE_TABLE){
-        $factors = $this->_assembleFactor(Distribute::OP_WRITE);
-        return $this->_getDriver($factors)->flush($scope);
+        return $this->_getDriverByOpType(Distribute::OP_WRITE)->flush($scope);
     }
 
     /**
      * 考虑到multiGet/Set，所以规定只使用db/table来影响分布策略
      * @param $op_type
-     * @return array
+     * @return \GreenTea\Cache\General
      */
-    protected function _assembleFactor($op_type){
-        return parent::_assembleFactors($this->_db_name, $this->_table_name, $op_type);
+    protected function _getDriverByOpType($op_type){
+        $factors = parent::_assembleFactors($this->_db_name, $this->_table_name, $op_type);
+        return $this->_getDriver($factors);
     }
 
     public function setDbName($name){

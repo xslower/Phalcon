@@ -23,7 +23,7 @@ class InsertOrUpdate extends IStatement{
      * @param array $append
      * @return string
      */
-    public function assemble($table, $fields = null, $condition = null, $append = null){
+    public function assemble($table, Array $fields = [], Array $condition = [], Array $append = []){
         $insert_fields = XArray::fetchItem($fields, Factory::INSERT_FIELDS, false);
         $update_fields = XArray::fetchItem($fields, Factory::UPDATE_FIELDS, false);
         if($insert_fields === false || $update_fields === false){

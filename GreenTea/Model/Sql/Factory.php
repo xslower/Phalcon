@@ -23,9 +23,10 @@ class Factory extends \GreenTea\Factory{
     const IN            = 'IN';
     const LIKE          = 'LIKE';
     //append
-    const ORDER_BY      = 'order_by';
-    const LIMIT         = 'limit';
-    const GROUP_BY      = 'group_by';
+    const ORDER_BY      = 'ORDER BY';
+    const LIMIT         = 'LIMIT';
+    const GROUP_BY      = 'GROUP BY';
+    //返回的列表使用哪个field作为key重新组织列表
     const RETURN_KEY    = 'return_key';
 
     //using for insert on duplicate key update

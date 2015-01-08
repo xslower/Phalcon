@@ -76,7 +76,7 @@ class Redis extends General{
         $this->_redis->setOption(\Redis::OPT_SCAN, \Redis::SCAN_RETRY); // retry when we get no keys back
         $arr_keys = $this->_redis->scan($it, $this->_table_name . $prefix . '*', 1000);
         foreach ($arr_keys as &$k) {
-            $k = ltrim($k, $this->_table_name);
+            $k = \GreenTea\Utility\String::strip($k, $this->_table_name);
         }
         return $arr_keys;
     }

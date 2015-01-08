@@ -10,23 +10,35 @@ namespace GreenTea\Model\Sql;
 
 class Fields{
 
-    public static function assembleRead($fields){
-        if(!$fields) return '*';
-        if(is_string(each($fields)['key'])){ //如果是关联数组，则表明是field-value型
-            $fields = array_keys($fields);
+    /**
+     * 组装select的fields
+     * @param array $fields
+     * @return string
+     */
+    public static function assembleRead(Array $fields){
+        if(empty($fields)) return '*';
+        if(current($fields) == '*') return '*';
+
+        $strField = '';
+        foreach ($fields as $key => $val) {
+            if(is_string($key)){
+                $strField .= ',' . self::handleField($key) . ' AS ' . self::handleField($val);
+                continue;
+            }
+            $strField .= ',' . self::handleField($val);
         }
-        return implode(',', $fields);
+        return substr($strField, 1);
     }
 
     /**
      * 组装insert/update的fields
-     * @param $fileds
+     * @param array $fields
      * @return string
      */
-    public static function assembleWrite($fileds){
-        if(!is_array($fileds)) return $fileds;
+    public static function assembleWrite(Array $fields){
+        if(!is_array($fields)) return $fields;
         $result = array();
-        foreach ($fileds as $key => $val) {
+        foreach ($fields as $key => $val) {
             if(is_array($val)){
                 $item = each($val); //在fields段中只支持一个节点，就是节点的key作为分类标识。
                 $state = '';
@@ -57,5 +69,24 @@ class Fields{
         return $state;
     }
 
+    protected static function getQuotes($field){
+        //count(*)和field两种情况
+        if(strpos($field, '(') !== false) return $field;
+        return '`' . $field . '`';
 
+    }
+
+    protected static function handleField($field){
+        if(!is_string($field)) return '';
+        //像[ count(*) as num ]这种情况
+        $slice = explode($field, ' ');
+        switch(count($slice)){
+            case 1:
+                return self::getQuotes($field);
+            case 3: //count(*) as num和field as num两种情况
+                return self::getQuotes($slice[0]) . ' AS ' . self::getQuotes($slice[2]);
+            default://error
+                return $field;
+        }
+    }
 }

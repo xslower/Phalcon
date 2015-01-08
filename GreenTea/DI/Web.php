@@ -10,6 +10,7 @@
 namespace GreenTea\DI;
 
 
+use GreenTea\Model\NoSql;
 use GreenTea\Utility\XArray;
 use Phalcon\DI\FactoryDefault;
 
@@ -31,7 +32,9 @@ class Web extends FactoryDefault{
         $session_config = XArray::fetchItem($config, 'session');
         if($session_config){
             $this->set(Services::SERVICE_SESSION, function() use($session_config){
-                $session = new \Phalcon\Session\Adapter\Redis($session_config);
+                $handler = XArray::fetchItem($session_config, 'handler', 'redis');
+                $session = \GreenTea\Session\Factory::getHandler($handler, $session_config);
+                //$session = new \GreenTea\Session\Adapter\Memcached($session_config);
                 $session->start();
                 return $session;
             });
@@ -40,8 +43,9 @@ class Web extends FactoryDefault{
         //add 404 page for router
         $this->set(Services::SERVICE_ROUTER, function(){
             $router = new \Phalcon\Mvc\Router();
-            $router->notFound(array('controller' => 'index', 'action' => 'notFound'));
-            $router->add('/', array('controller' => 'index', 'action' => 'index'));
+            $router->notFound(['controller' => 'index', 'action' => 'notFound']);
+            $router->add('/', ['controller' => 'index', 'action' => 'index']);
+            //$router->add('/:controller/:params', ['controller' => 1, 'action' => 'dispatch', 'params' => 2]);
             return $router;
         });
 
@@ -53,10 +57,17 @@ class Web extends FactoryDefault{
         });
 
         $this->set(Services::SERVICE_DISPATCHER, function(){
-            $eventsManager = $this->getShared('eventsManager');
+            $eventsManager = $this->getShared(Services::SERVICE_EVENTMANAGER);
+            $eventsManager->attach('dispatch', new \DispatcherPlugin());
             $dispatcher = new \Phalcon\Mvc\Dispatcher();
+            $dispatcher->setDI($this);
             $dispatcher->setEventsManager($eventsManager);
             return $dispatcher;
+        });
+
+        $this->set(Services::SERVICE_CACHE, function(){
+            $cache = new NoSql();
+            return $cache;
         });
     }
 } 

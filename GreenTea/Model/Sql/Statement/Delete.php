@@ -19,7 +19,7 @@ class Delete extends IStatement{
      * @param array $append
      * @return string
      */
-    public function assemble($table, $fields = null, $condition = null, $append = null){
+    public function assemble($table, Array $fields = [], Array $condition = [], Array $append = []){
         $str_condition = Condition::assemble($condition);
         if($str_condition){
             $str_condition = ' WHERE ' . $str_condition;

@@ -21,7 +21,7 @@ class Select extends IStatement{
      * @param array $append
      * @return string
      */
-    public function assemble($table, $fields = null, $condition = null, $append = null){
+    public function assemble($table, Array $fields = [], Array $condition = [], Array  $append = []){
         $str_fields = Fields::assembleRead($fields);
         $str_condition = Condition::assemble($condition);
         if($str_condition){

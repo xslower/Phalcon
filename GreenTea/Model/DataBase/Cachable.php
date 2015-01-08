@@ -52,6 +52,8 @@ class Cachable extends Correlate{
     protected function _initCallback(){
         $this->_callback[self::CACHE_NONE]['read'] = function(Array &$channel, Array $condition){return null;};
         $this->_callback[self::CACHE_NONE]['write'] = function(Array &$channel, $result){};
+        $this->_callback[self::CACHE_NONE]['clear'] = function(Array $condition){};
+        //$channel是用来read和write之间数据通信的
         $this->_callback[self::CACHE_PACKAGE]['read'] = function(Array &$channel, Array $condition){
             $this->_cachePrepare($condition);
             $cache_key = $this->_generateHashKey($condition);
@@ -62,6 +64,11 @@ class Cachable extends Correlate{
         $this->_callback[self::CACHE_PACKAGE]['write'] = function(Array &$channel, $result){
             $key = $channel['cache_key'];
             $this->_cache->set($key, $result, $this->_lifetime);
+        };
+        $this->_callback[self::CACHE_PACKAGE]['clear'] = function(Array $condition){
+            $this->_cachePrepare($condition);
+            $cache_key = $this->_generateHashKey($condition);
+            $this->_cache->del($cache_key);
         };
         $this->_callback[self::CACHE_ROW]['read'] = function(Array &$channel, Array $condition){
             $this->_cachePrepare($condition);
@@ -110,6 +117,14 @@ class Cachable extends Correlate{
             }
             $result = $itmes; //把结果转为带key的
         };
+        $this->_callback[self::CACHE_ROW]['clear'] = function(Array $condition){
+            $this->_cachePrepare($condition);
+            $primary_key = $this->_getPkValue($condition);
+            if(!$primary_key){ //如果不是主键修改，则清除整个表的缓存
+                $this->_cache->flush();
+            }
+            $this->_cache->del($primary_key);
+        };
     }
 
     /**
@@ -142,7 +157,7 @@ class Cachable extends Correlate{
      *  反而如果能用做缓冲写的价值就大多了。
      */
     protected function _populateDefaultIntoFields(Array &$fields = []){
-        $columns = $this->_getTableColumns();
+        $columns = $this->_getColumnsInfo();
         foreach ($columns as $k => $v) {
             if(isset($fields[$k])) continue;
             if ($v[self::COLUMNS_DEFAULT] == self::COLUMNS_DEFAULT_TIMESTAMP) {
@@ -179,6 +194,18 @@ class Cachable extends Correlate{
             //$this->_cache->set($pk, $fields);
         }
         return $pk;
+    }
+
+    /**
+     * {@inheritdoc}
+     * 清除缓存
+     * @param array $fields
+     * @param array $condition
+     * @return bool
+     */
+    public function update(Array $fields, Array $condition){
+        $ret = parent::update($fields, $condition);
+        call_user_func($this->_callback[$this->_cache_strategy]['clear'], $condition);
     }
 
     /**

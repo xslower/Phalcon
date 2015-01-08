@@ -21,8 +21,10 @@ class Services  {
     const CONFIG_DB_CUSTOM = 'db_custom';
     const SERVICE_DB_CACHE = 'DbCacheService';
     const SERVICE_LOCALCACHE = 'LocalCache';
+    const SERVICE_CACHE = 'Cache';
     const SERVICE_LOGGER = 'log_service';
     const SERVICE_PHALCON_MODEL = 'phalcon_model';
+    const SERVICE_EVENTMANAGER = 'eventsManager';
     const SERVICE_DISPATCHER = 'dispatcher';
     const SERVICE_ROUTER = 'router';
     const SERVICE_SESSION = 'session';
